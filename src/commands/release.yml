@@ -1,0 +1,62 @@
+description: >
+  Finalises a Sentry release and publishes a deployment via the Sentry CLI. 
+  the command will notify a your `slack-notify-channel` channel if the process passes or fails.
+
+parameters:
+  deploy-environment:
+    type: string
+    default: staging
+    description: The Sentry CLI deploy environment
+  sentry-release:
+    type: string
+    default: PLAT@<<pipeline.git.revision>>
+    description: Release name. Defaults to the git SHA (Same as sentry cli does)
+  slack-notify-channel:
+    type: string
+    default: $SLACK_DEFAULT_CHANNEL
+    description:
+      Slack channel to post messages on failure or successful release to
+      sentry
+steps:
+  - run:
+      name: Create Sentry Release
+      command: |
+        # Install Sentry CLI
+        curl -sL https://sentry.io/get-cli/ | b
+        # Create New Sentry Release
+        sentry-cli releases new -p $SENTRY_PROJECT <<parameters.sentry-release>>
+        sentry-cli releases set-commits  <<parameters.sentry-release>> --auto
+        sentry-cli releases finalize <<parameters.sentry-releas
+        # Create new deploy for this sentry release
+        sentry-cli releases deploys <<parameters.sentry-release>> new -e <<parameters.deploy-environment>>
+  - slack/notify:
+      channel: <<parameters.slack-notify-channel>>
+      mentions: "@channel"
+      custom: |
+        {
+          "blocks": [
+           {
+        			"type": "section",
+        			"text": {
+        				"type": "mrkdwn",
+                "text": "🛑😩🛑😩 *Failed Sentry Release* for `<<parameters.deploy-environment>>` 🛑😩🛑😩"
+        			}
+        		}
+          ]
+        }
+      event: fail
+  - slack/notify:
+      channel: <<parameters.slack-notify-channel>>
+      custom: |
+        {
+          "blocks": [
+           {
+        			"type": "section",
+        			"text": {
+        				"type": "mrkdwn",
+                "text": "🎉🎉 *Successful Sentry Release* for `<<parameters.deploy-environment>>`🎉🎉"
+        			}
+        		}
+          ]
+        }
+      event: pass
