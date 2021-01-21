@@ -26,7 +26,7 @@ steps:
         # Create New Sentry Release
         sentry-cli releases new -p $SENTRY_PROJECT <<parameters.sentry-release>>
         sentry-cli releases set-commits  <<parameters.sentry-release>> --auto
-        sentry-cli releases finalize <<parameters.sentry-releas
+        sentry-cli releases finalize <<parameters.sentry-release>>
         # Create new deploy for this sentry release
         sentry-cli releases deploys <<parameters.sentry-release>> new -e <<parameters.deploy-environment>>
   - slack/notify:
